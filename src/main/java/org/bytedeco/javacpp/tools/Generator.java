@@ -1433,33 +1433,40 @@ public class Generator {
         out.println(" };");
         out.println();
         out.println("extern \"C\" {");
+
+        List lstPlatformOS = clsProperties.get("platform.os");
+
         if (out2 != null) {
             out2.println();
             out2.println("#ifdef __cplusplus");
             out2.println("extern \"C\" {");
             out2.println("#endif");
-            out2.println("JNIIMPORT int JavaCPP_init" + loadSuffix + "(int argc, const char *argv[]);");
-            out.println();
-            out.println("JNIEXPORT int JavaCPP_init" + loadSuffix + "(int argc, const char *argv[]) {");
-            out.println("#if defined(__ANDROID__) || TARGET_OS_IPHONE");
-            out.println("    return JNI_OK;");
-            out.println("#else");
-            out.println("    if (JavaCPP_vm != NULL) {");
-            out.println("        return JNI_OK;");
-            out.println("    }");
-            out.println("    int err;");
-            out.println("    JavaVM *vm;");
-            out.println("    JNIEnv *env;");
-            out.println("    int nOptions = 1 + (argc > 255 ? 255 : argc);");
-            out.println("    JavaVMOption options[256] = { { NULL } };");
-            out.println("    options[0].optionString = (char*)\"-Djava.class.path=" + classPath.replace('\\', '/') + "\";");
-            out.println("    for (int i = 1; i < nOptions && argv != NULL; i++) {");
-            out.println("        options[i].optionString = (char*)argv[i - 1];");
-            out.println("    }");
-            out.println("    JavaVMInitArgs vm_args = { " + JNI_VERSION + ", nOptions, options };");
-            out.println("    return (err = JNI_CreateJavaVM(&vm, (void**)&env, &vm_args)) == JNI_OK && vm != NULL && (err = JNI_OnLoad" + loadSuffix + "(vm, NULL)) >= 0 ? JNI_OK : err;");
-            out.println("#endif");
-            out.println("}");
+          
+            if (lstPlatformOS==null || lstPlatformOS.size()==0 || !lstPlatformOS.get(0).equals("android"))
+            {
+                out2.println("JNIIMPORT int JavaCPP_init" + loadSuffix + "(int argc, const char *argv[]);");
+                out.println();
+                out.println("JNIEXPORT int JavaCPP_init" + loadSuffix + "(int argc, const char *argv[]) {");
+                out.println("#if defined(__ANDROID__) || TARGET_OS_IPHONE");
+                out.println("    return JNI_OK;");
+                out.println("#else");
+                out.println("    if (JavaCPP_vm != NULL) {");
+                out.println("        return JNI_OK;");
+                out.println("    }");
+                out.println("    int err;");
+                out.println("    JavaVM *vm;");
+                out.println("    JNIEnv *env;");
+                out.println("    int nOptions = 1 + (argc > 255 ? 255 : argc);");
+                out.println("    JavaVMOption options[256] = { { NULL } };");
+                out.println("    options[0].optionString = (char*)\"-Djava.class.path=" + classPath.replace('\\', '/') + "\";");
+                out.println("    for (int i = 1; i < nOptions && argv != NULL; i++) {");
+                out.println("        options[i].optionString = (char*)argv[i - 1];");
+                out.println("    }");
+                out.println("    JavaVMInitArgs vm_args = { " + JNI_VERSION + ", nOptions, options };");
+                out.println("    return (err = JNI_CreateJavaVM(&vm, (void**)&env, &vm_args)) == JNI_OK && vm != NULL && (err = JNI_OnLoad" + loadSuffix + "(vm, NULL)) >= 0 ? JNI_OK : err;");
+                out.println("#endif");
+                out.println("}");
+            }
         }
         if (baseLoadSuffix != null && !baseLoadSuffix.isEmpty()) {
             out.println();
@@ -1612,17 +1619,20 @@ public class Generator {
         out.println("}");
         out.println();
         if (out2 != null) {
-            out2.println("JNIIMPORT int JavaCPP_uninit" + loadSuffix + "();");
-            out2.println();
-            out.println("JNIEXPORT int JavaCPP_uninit" + loadSuffix + "() {");
-            out.println("#if defined(__ANDROID__) || TARGET_OS_IPHONE");
-            out.println("    return JNI_OK;");
-            out.println("#else");
-            out.println("    JavaVM *vm = JavaCPP_vm;");
-            out.println("    JNI_OnUnload" + loadSuffix + "(JavaCPP_vm, NULL);");
-            out.println("    return vm->DestroyJavaVM();");
-            out.println("#endif");
-            out.println("}");
+            if (lstPlatformOS==null || lstPlatformOS.size()==0 || !lstPlatformOS.get(0).equals("android"))
+            {
+                out2.println("JNIIMPORT int JavaCPP_uninit" + loadSuffix + "();");
+                out2.println();
+                out.println("JNIEXPORT int JavaCPP_uninit" + loadSuffix + "() {");
+                out.println("#if defined(__ANDROID__) || TARGET_OS_IPHONE");
+                out.println("    return JNI_OK;");
+                out.println("#else");
+                out.println("    JavaVM *vm = JavaCPP_vm;");
+                out.println("    JNI_OnUnload" + loadSuffix + "(JavaCPP_vm, NULL);");
+                out.println("    return vm->DestroyJavaVM();");
+                out.println("#endif");
+                out.println("}");
+            }
         }
         out.println();
         out.println("JNIEXPORT void JNICALL JNI_OnUnload" + loadSuffix + "(JavaVM* vm, void* reserved) {");
