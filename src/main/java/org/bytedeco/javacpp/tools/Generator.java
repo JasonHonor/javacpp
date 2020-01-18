@@ -1511,150 +1511,155 @@ public class Generator {
             out.println("JNIEXPORT void JNICALL JNI_OnUnload" + baseLoadSuffix + "(JavaVM* vm, void* reserved);");
         }
         out.println(); // XXX: JNI_OnLoad() should ideally be protected by some mutex
-        out.println("JNIEXPORT jint JNICALL JNI_OnLoad" + loadSuffix + "(JavaVM* vm, void* reserved) {");
-        if (baseLoadSuffix != null && !baseLoadSuffix.isEmpty()) {
-            out.println("    if (JNI_OnLoad" + baseLoadSuffix + "(vm, reserved) == JNI_ERR) {");
+
+        //if(!loadSuffix.equals(""))
+        {
+            out.println("JNIEXPORT jint JNICALL JNI_OnLoad" + loadSuffix + "(JavaVM* vm, void* reserved) {");
+            if (baseLoadSuffix != null && !baseLoadSuffix.isEmpty()) {
+                out.println("    if (JNI_OnLoad" + baseLoadSuffix + "(vm, reserved) == JNI_ERR) {");
+                out.println("        return JNI_ERR;");
+                out.println("    }");
+            }
+            out.println("    JNIEnv* env;");
+            out.println("    if (vm->GetEnv((void**)&env, " + JNI_VERSION + ") != JNI_OK) {");
+            out.println("        JavaCPP_log(\"Could not get JNIEnv for " + JNI_VERSION + " inside JNI_OnLoad" + loadSuffix + "().\");");
             out.println("        return JNI_ERR;");
             out.println("    }");
+            out.println("    if (JavaCPP_vm == vm) {");
+            out.println("        return env->GetVersion();");
+            out.println("    }");
+            out.println("    JavaCPP_vm = vm;");
+            out.println("    JavaCPP_haveAllocObject = env->functions->AllocObject != NULL;");
+            out.println("    JavaCPP_haveNonvirtual = env->functions->CallNonvirtualVoidMethodA != NULL;");
+            out.println("    jmethodID putMemberOffsetMID = JavaCPP_getStaticMethodID(env, " +
+                    jclasses.index(Loader.class) + ", \"putMemberOffset\", \"(Ljava/lang/String;Ljava/lang/String;I)Ljava/lang/Class;\");");
+            out.println("    if (putMemberOffsetMID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    for (int i = 0; i < " + jclasses.size() + " && !env->ExceptionCheck(); i++) {");
+            out.println("        for (int j = 0; j < JavaCPP_memberOffsetSizes[i] && !env->ExceptionCheck(); j++) {");
+            out.println("            if (env->PushLocalFrame(3) == 0) {");
+            out.println("                jvalue args[3];");
+            out.println("                args[0].l = env->NewStringUTF(JavaCPP_classNames[i]);");
+            out.println("                args[1].l = JavaCPP_members[i][j] == NULL ? NULL : env->NewStringUTF(JavaCPP_members[i][j]);");
+            out.println("                args[2].i = JavaCPP_offsets[i][j];");
+            out.println("                jclass cls = (jclass)env->CallStaticObjectMethodA(JavaCPP_getClass(env, " +
+                    jclasses.index(Loader.class) + "), putMemberOffsetMID, args);");
+            out.println("                if (env->ExceptionCheck()) {");
+            out.println("                    JavaCPP_log(\"Error putting member offsets for class %s.\", JavaCPP_classNames[i]);");
+            out.println("                    return JNI_ERR;");
+            out.println("                }");
+            out.println("                JavaCPP_classes[i] = cls == NULL ? NULL : (jclass)env->NewWeakGlobalRef(cls);"); // cache here for custom class loaders
+            out.println("                if (env->ExceptionCheck()) {");
+            out.println("                    JavaCPP_log(\"Error creating global reference of class %s.\", JavaCPP_classNames[i]);");
+            out.println("                    return JNI_ERR;");
+            out.println("                }");
+            out.println("                env->PopLocalFrame(NULL);");
+            out.println("            }");
+            out.println("        }");
+            out.println("    }");
+            out.println("    JavaCPP_addressFID = JavaCPP_getFieldID(env, " +
+                    jclasses.index(Pointer.class) + ", \"address\", \"J\");");
+            out.println("    if (JavaCPP_addressFID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    JavaCPP_positionFID = JavaCPP_getFieldID(env, " +
+                    jclasses.index(Pointer.class) + ", \"position\", \"J\");");
+            out.println("    if (JavaCPP_positionFID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    JavaCPP_limitFID = JavaCPP_getFieldID(env, " +
+                    jclasses.index(Pointer.class) + ", \"limit\", \"J\");");
+            out.println("    if (JavaCPP_limitFID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    JavaCPP_capacityFID = JavaCPP_getFieldID(env, " +
+                    jclasses.index(Pointer.class) + ", \"capacity\", \"J\");");
+            out.println("    if (JavaCPP_capacityFID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    JavaCPP_deallocatorFID = JavaCPP_getFieldID(env, " +
+                    jclasses.index(Pointer.class) + ", \"deallocator\", \"" + signature(deallocator) + "\");");
+            out.println("    if (JavaCPP_deallocatorFID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    JavaCPP_ownerAddressFID = JavaCPP_getFieldID(env, " +
+                    jclasses.index(nativeDeallocator) + ", \"ownerAddress\", \"J\");");
+            out.println("    if (JavaCPP_ownerAddressFID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            if (declareEnums) {
+                out.println("    JavaCPP_byteValueFID = JavaCPP_getFieldID(env, \"" +
+                        ByteEnum.class.getName().replace('.', '/') + "\", \"value\", \"B\");");
+                out.println("    if (JavaCPP_byteValueFID == NULL) {");
+                out.println("        return JNI_ERR;");
+                out.println("    }");
+                out.println("    JavaCPP_shortValueFID = JavaCPP_getFieldID(env, \"" +
+                        ShortEnum.class.getName().replace('.', '/') + "\", \"value\", \"S\");");
+                out.println("    if (JavaCPP_shortValueFID == NULL) {");
+                out.println("        return JNI_ERR;");
+                out.println("    }");
+                out.println("    JavaCPP_intValueFID = JavaCPP_getFieldID(env, \"" +
+                        IntEnum.class.getName().replace('.', '/') + "\", \"value\", \"I\");");
+                out.println("    if (JavaCPP_intValueFID == NULL) {");
+                out.println("        return JNI_ERR;");
+                out.println("    }");
+                out.println("    JavaCPP_longValueFID = JavaCPP_getFieldID(env, \"" +
+                        LongEnum.class.getName().replace('.', '/') + "\", \"value\", \"J\");");
+                out.println("    if (JavaCPP_longValueFID == NULL) {");
+                out.println("        return JNI_ERR;");
+                out.println("    }");
+            }
+            out.println("    JavaCPP_initMID = JavaCPP_getMethodID(env, " +
+                    jclasses.index(Pointer.class) + ", \"init\", \"(JJJJ)V\");");
+            out.println("    if (JavaCPP_initMID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    JavaCPP_arrayMID = JavaCPP_getMethodID(env, " +
+                    jclasses.index(Buffer.class) + ", \"array\", \"()Ljava/lang/Object;\");");
+            out.println("    if (JavaCPP_arrayMID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    JavaCPP_arrayOffsetMID = JavaCPP_getMethodID(env, " +
+                    jclasses.index(Buffer.class) + ", \"arrayOffset\", \"()I\");");
+            out.println("    if (JavaCPP_arrayOffsetMID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    JavaCPP_bufferPositionFID = JavaCPP_getFieldID(env, " +
+                    jclasses.index(Buffer.class) + ", \"position\", \"I\");");
+            out.println("    if (JavaCPP_bufferPositionFID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    JavaCPP_bufferLimitFID = JavaCPP_getFieldID(env, " +
+                    jclasses.index(Buffer.class) + ", \"limit\", \"I\");");
+            out.println("    if (JavaCPP_bufferLimitFID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    JavaCPP_bufferCapacityFID = JavaCPP_getFieldID(env, " +
+                    jclasses.index(Buffer.class) + ", \"capacity\", \"I\");");
+            out.println("    if (JavaCPP_bufferCapacityFID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    JavaCPP_stringMID = JavaCPP_getMethodID(env, " +
+                    jclasses.index(String.class) + ", \"<init>\", \"([B)V\");");
+            out.println("    if (JavaCPP_stringMID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    JavaCPP_getBytesMID = JavaCPP_getMethodID(env, " +
+                    jclasses.index(String.class) + ", \"getBytes\", \"()[B\");");
+            out.println("    if (JavaCPP_getBytesMID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    JavaCPP_toStringMID = JavaCPP_getMethodID(env, " +
+                    jclasses.index(Object.class) + ", \"toString\", \"()Ljava/lang/String;\");");
+            out.println("    if (JavaCPP_toStringMID == NULL) {");
+            out.println("        return JNI_ERR;");
+            out.println("    }");
+            out.println("    return env->GetVersion();");
+            out.println("}");
+            out.println();
         }
-        out.println("    JNIEnv* env;");
-        out.println("    if (vm->GetEnv((void**)&env, " + JNI_VERSION + ") != JNI_OK) {");
-        out.println("        JavaCPP_log(\"Could not get JNIEnv for " + JNI_VERSION + " inside JNI_OnLoad" + loadSuffix + "().\");");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    if (JavaCPP_vm == vm) {");
-        out.println("        return env->GetVersion();");
-        out.println("    }");
-        out.println("    JavaCPP_vm = vm;");
-        out.println("    JavaCPP_haveAllocObject = env->functions->AllocObject != NULL;");
-        out.println("    JavaCPP_haveNonvirtual = env->functions->CallNonvirtualVoidMethodA != NULL;");
-        out.println("    jmethodID putMemberOffsetMID = JavaCPP_getStaticMethodID(env, " +
-                jclasses.index(Loader.class) + ", \"putMemberOffset\", \"(Ljava/lang/String;Ljava/lang/String;I)Ljava/lang/Class;\");");
-        out.println("    if (putMemberOffsetMID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    for (int i = 0; i < " + jclasses.size() + " && !env->ExceptionCheck(); i++) {");
-        out.println("        for (int j = 0; j < JavaCPP_memberOffsetSizes[i] && !env->ExceptionCheck(); j++) {");
-        out.println("            if (env->PushLocalFrame(3) == 0) {");
-        out.println("                jvalue args[3];");
-        out.println("                args[0].l = env->NewStringUTF(JavaCPP_classNames[i]);");
-        out.println("                args[1].l = JavaCPP_members[i][j] == NULL ? NULL : env->NewStringUTF(JavaCPP_members[i][j]);");
-        out.println("                args[2].i = JavaCPP_offsets[i][j];");
-        out.println("                jclass cls = (jclass)env->CallStaticObjectMethodA(JavaCPP_getClass(env, " +
-                jclasses.index(Loader.class) + "), putMemberOffsetMID, args);");
-        out.println("                if (env->ExceptionCheck()) {");
-        out.println("                    JavaCPP_log(\"Error putting member offsets for class %s.\", JavaCPP_classNames[i]);");
-        out.println("                    return JNI_ERR;");
-        out.println("                }");
-        out.println("                JavaCPP_classes[i] = cls == NULL ? NULL : (jclass)env->NewWeakGlobalRef(cls);"); // cache here for custom class loaders
-        out.println("                if (env->ExceptionCheck()) {");
-        out.println("                    JavaCPP_log(\"Error creating global reference of class %s.\", JavaCPP_classNames[i]);");
-        out.println("                    return JNI_ERR;");
-        out.println("                }");
-        out.println("                env->PopLocalFrame(NULL);");
-        out.println("            }");
-        out.println("        }");
-        out.println("    }");
-        out.println("    JavaCPP_addressFID = JavaCPP_getFieldID(env, " +
-                jclasses.index(Pointer.class) + ", \"address\", \"J\");");
-        out.println("    if (JavaCPP_addressFID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    JavaCPP_positionFID = JavaCPP_getFieldID(env, " +
-                jclasses.index(Pointer.class) + ", \"position\", \"J\");");
-        out.println("    if (JavaCPP_positionFID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    JavaCPP_limitFID = JavaCPP_getFieldID(env, " +
-                jclasses.index(Pointer.class) + ", \"limit\", \"J\");");
-        out.println("    if (JavaCPP_limitFID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    JavaCPP_capacityFID = JavaCPP_getFieldID(env, " +
-                jclasses.index(Pointer.class) + ", \"capacity\", \"J\");");
-        out.println("    if (JavaCPP_capacityFID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    JavaCPP_deallocatorFID = JavaCPP_getFieldID(env, " +
-                jclasses.index(Pointer.class) + ", \"deallocator\", \"" + signature(deallocator) + "\");");
-        out.println("    if (JavaCPP_deallocatorFID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    JavaCPP_ownerAddressFID = JavaCPP_getFieldID(env, " +
-                jclasses.index(nativeDeallocator) + ", \"ownerAddress\", \"J\");");
-        out.println("    if (JavaCPP_ownerAddressFID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        if (declareEnums) {
-            out.println("    JavaCPP_byteValueFID = JavaCPP_getFieldID(env, \"" +
-                    ByteEnum.class.getName().replace('.', '/') + "\", \"value\", \"B\");");
-            out.println("    if (JavaCPP_byteValueFID == NULL) {");
-            out.println("        return JNI_ERR;");
-            out.println("    }");
-            out.println("    JavaCPP_shortValueFID = JavaCPP_getFieldID(env, \"" +
-                    ShortEnum.class.getName().replace('.', '/') + "\", \"value\", \"S\");");
-            out.println("    if (JavaCPP_shortValueFID == NULL) {");
-            out.println("        return JNI_ERR;");
-            out.println("    }");
-            out.println("    JavaCPP_intValueFID = JavaCPP_getFieldID(env, \"" +
-                    IntEnum.class.getName().replace('.', '/') + "\", \"value\", \"I\");");
-            out.println("    if (JavaCPP_intValueFID == NULL) {");
-            out.println("        return JNI_ERR;");
-            out.println("    }");
-            out.println("    JavaCPP_longValueFID = JavaCPP_getFieldID(env, \"" +
-                    LongEnum.class.getName().replace('.', '/') + "\", \"value\", \"J\");");
-            out.println("    if (JavaCPP_longValueFID == NULL) {");
-            out.println("        return JNI_ERR;");
-            out.println("    }");
-        }
-        out.println("    JavaCPP_initMID = JavaCPP_getMethodID(env, " +
-                jclasses.index(Pointer.class) + ", \"init\", \"(JJJJ)V\");");
-        out.println("    if (JavaCPP_initMID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    JavaCPP_arrayMID = JavaCPP_getMethodID(env, " +
-                jclasses.index(Buffer.class) + ", \"array\", \"()Ljava/lang/Object;\");");
-        out.println("    if (JavaCPP_arrayMID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    JavaCPP_arrayOffsetMID = JavaCPP_getMethodID(env, " +
-                jclasses.index(Buffer.class) + ", \"arrayOffset\", \"()I\");");
-        out.println("    if (JavaCPP_arrayOffsetMID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    JavaCPP_bufferPositionFID = JavaCPP_getFieldID(env, " +
-                jclasses.index(Buffer.class) + ", \"position\", \"I\");");
-        out.println("    if (JavaCPP_bufferPositionFID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    JavaCPP_bufferLimitFID = JavaCPP_getFieldID(env, " +
-                jclasses.index(Buffer.class) + ", \"limit\", \"I\");");
-        out.println("    if (JavaCPP_bufferLimitFID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    JavaCPP_bufferCapacityFID = JavaCPP_getFieldID(env, " +
-                jclasses.index(Buffer.class) + ", \"capacity\", \"I\");");
-        out.println("    if (JavaCPP_bufferCapacityFID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    JavaCPP_stringMID = JavaCPP_getMethodID(env, " +
-                jclasses.index(String.class) + ", \"<init>\", \"([B)V\");");
-        out.println("    if (JavaCPP_stringMID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    JavaCPP_getBytesMID = JavaCPP_getMethodID(env, " +
-                jclasses.index(String.class) + ", \"getBytes\", \"()[B\");");
-        out.println("    if (JavaCPP_getBytesMID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    JavaCPP_toStringMID = JavaCPP_getMethodID(env, " +
-                jclasses.index(Object.class) + ", \"toString\", \"()Ljava/lang/String;\");");
-        out.println("    if (JavaCPP_toStringMID == NULL) {");
-        out.println("        return JNI_ERR;");
-        out.println("    }");
-        out.println("    return env->GetVersion();");
-        out.println("}");
-        out.println();
+
         if (out2 != null) {
             if (lstPlatformOS==null || lstPlatformOS.size()==0 || !lstPlatformOS.get(0).equals("android"))
             {
