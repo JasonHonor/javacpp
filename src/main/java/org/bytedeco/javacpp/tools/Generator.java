@@ -320,6 +320,8 @@ public class Generator {
             out.println();
 
         } else {
+
+            out.println("#include \"jnijavacpp.h\"");
             /*
             out.println("extern JavaVM* JavaCPP_vm;");
             out.println("extern bool JavaCPP_haveAllocObject;");
@@ -348,12 +350,13 @@ public class Generator {
             out.println("extern jmethodID JavaCPP_stringMID;");
             out.println("extern jmethodID JavaCPP_getBytesMID;");
             out.println("extern jmethodID JavaCPP_toStringMID;");
-            */
+
 
             out.println("extern void JavaCPP_log(const char* fmt, ...);");
             out.println("    extern pthread_key_t JavaCPP_current_env;");
             out.println("    extern void JavaCPP_detach_env(void *data);");
             out.println("    extern void JavaCPP_create_pthread_key(void);");
+                        */
         }
 
 
@@ -666,9 +669,9 @@ public class Generator {
             out.println("}");
             out.println();
         }else {
-            out.println("extern jclass JavaCPP_getClass(JNIEnv* env, int i);");
+            /*out.println("extern jclass JavaCPP_getClass(JNIEnv* env, int i);");
             out.println("extern void* JavaCPP_addressof(const char* name);");
-            out.println("extern JavaVM* JavaCPP_getJavaVM();");
+            out.println("extern JavaVM* JavaCPP_getJavaVM();");*/
         }
     }
 
@@ -783,7 +786,7 @@ public class Generator {
             out.println("}");
             out.println();
         }else {
-            out.println("extern jclass JavaCPP_getClass(JNIEnv* env, int i);");
+            /*out.println("extern jclass JavaCPP_getClass(JNIEnv* env, int i);");
 
             out.println("extern jfieldID JavaCPP_getFieldID(JNIEnv* env, int i, const char* name, const char* sig);");
 
@@ -800,6 +803,7 @@ public class Generator {
             out.println("extern jobject JavaCPP_createPointer(JNIEnv* env, int i, jclass cls = NULL);");
 
             out.println("extern void JavaCPP_initPointer(JNIEnv* env, jobject obj, const void* ptr, jlong size, void* owner, void (*deallocator)(void*));");
+            */
         }
     }
 
@@ -1395,7 +1399,7 @@ public class Generator {
                 out.println("}");
                 out.println();
             }else{
-                out.println("extern void JavaCPP_detach(bool detach);");
+                //out.println("extern void JavaCPP_detach(bool detach);");
             }
             if (!loadSuffix.isEmpty()) {
                 out.println("extern \"C\" {");
@@ -1473,7 +1477,7 @@ public class Generator {
                 out.println("}");
                 out.println();
             }else {
-                out.println("extern bool JavaCPP_getEnv(JNIEnv** env);");
+                //out.println("extern bool JavaCPP_getEnv(JNIEnv** env);");
             }
         }
 
