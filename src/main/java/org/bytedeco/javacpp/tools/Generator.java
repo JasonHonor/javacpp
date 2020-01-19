@@ -1505,14 +1505,33 @@ public class Generator {
                 out.println("}");
             }
         }
+
+        //common define.
         if (baseLoadSuffix != null && !baseLoadSuffix.isEmpty()) {
             out.println();
-            out.println("JNIEXPORT jint JNICALL JNI_OnLoad" + baseLoadSuffix + "(JavaVM* vm, void* reserved);");
-            out.println("JNIEXPORT void JNICALL JNI_OnUnload" + baseLoadSuffix + "(JavaVM* vm, void* reserved);");
+            if (lstPlatformOS==null || lstPlatformOS.size()==0 || !lstPlatformOS.get(0).equals("android")) {
+
+                out.println("JNIEXPORT jint JNICALL JNI_OnLoad" + baseLoadSuffix + "(JavaVM* vm, void* reserved);");
+                out.println("JNIEXPORT void JNICALL JNI_OnUnload" + baseLoadSuffix + "(JavaVM* vm, void* reserved);");
+            }else {
+                //out.println("JNIIMPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved);");
+                //out.println("JNIIMPORT void JNICALL JNI_OnUnload(JavaVM* vm, void* reserved);");
+            }
         }
+
         out.println(); // XXX: JNI_OnLoad() should ideally be protected by some mutex
 
-        //if(!loadSuffix.equals(""))
+        boolean bGenerate =false;
+        if (lstPlatformOS==null || lstPlatformOS.size()==0 || !lstPlatformOS.get(0).equals("android") ) {
+            bGenerate=true;
+        }else {
+            if(loadSuffix != null && !loadSuffix.isEmpty()) {
+                loadSuffix="";
+                bGenerate = true;
+            }
+        }
+
+        if(bGenerate)
         {
             out.println("JNIEXPORT jint JNICALL JNI_OnLoad" + loadSuffix + "(JavaVM* vm, void* reserved) {");
             if (baseLoadSuffix != null && !baseLoadSuffix.isEmpty()) {
@@ -1677,22 +1696,24 @@ public class Generator {
             }
         }
         out.println();
-        out.println("JNIEXPORT void JNICALL JNI_OnUnload" + loadSuffix + "(JavaVM* vm, void* reserved) {");
-        out.println("    JNIEnv* env;");
-        out.println("    if (vm->GetEnv((void**)&env, " + JNI_VERSION + ") != JNI_OK) {");
-        out.println("        JavaCPP_log(\"Could not get JNIEnv for " + JNI_VERSION + " inside JNI_OnUnLoad" + loadSuffix + "().\");");
-        out.println("        return;");
-        out.println("    }");
-        out.println("    for (int i = 0; i < " + jclasses.size() + "; i++) {");
-        out.println("        env->DeleteWeakGlobalRef((jweak)JavaCPP_classes[i]);");
-        out.println("        JavaCPP_classes[i] = NULL;");
-        out.println("    }");
-        if (baseLoadSuffix != null && !baseLoadSuffix.isEmpty()) {
-            out.println("    JNI_OnUnload" + baseLoadSuffix + "(vm, reserved);");
+        if (lstPlatformOS==null || lstPlatformOS.size()==0 || !lstPlatformOS.get(0).equals("android")) {
+            out.println("JNIEXPORT void JNICALL JNI_OnUnload" + loadSuffix + "(JavaVM* vm, void* reserved) {");
+            out.println("    JNIEnv* env;");
+            out.println("    if (vm->GetEnv((void**)&env, " + JNI_VERSION + ") != JNI_OK) {");
+            out.println("        JavaCPP_log(\"Could not get JNIEnv for " + JNI_VERSION + " inside JNI_OnUnLoad" + loadSuffix + "().\");");
+            out.println("        return;");
+            out.println("    }");
+            out.println("    for (int i = 0; i < " + jclasses.size() + "; i++) {");
+            out.println("        env->DeleteWeakGlobalRef((jweak)JavaCPP_classes[i]);");
+            out.println("        JavaCPP_classes[i] = NULL;");
+            out.println("    }");
+            if (baseLoadSuffix != null && !baseLoadSuffix.isEmpty()) {
+                out.println("    JNI_OnUnload" + baseLoadSuffix + "(vm, reserved);");
+            }
+            out.println("    JavaCPP_vm = NULL;");
+            out.println("}");
+            out.println();
         }
-        out.println("    JavaCPP_vm = NULL;");
-        out.println("}");
-        out.println();
 
         boolean supportedPlatform = false;
         LinkedHashSet<Class> allClasses = new LinkedHashSet<Class>();

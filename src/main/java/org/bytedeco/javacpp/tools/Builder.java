@@ -1029,6 +1029,7 @@ public class Builder {
         List<File> outputFiles = new ArrayList<File>();
         List<String> allNames = new ArrayList<String>();
         if (outputName != null && outputName.equals("jnijavacpp")) {
+            logger.info("GenFile " + outputName+"\n");
             // the user only wants the "jnijavacpp" library
             File[] files = generateAndCompile(null, outputName, true, true);
             if (files != null && files.length > 0) {
@@ -1125,6 +1126,8 @@ public class Builder {
                     }
                 }
             } else if (libraryClassSet != null) {
+                logger.info("GenClassSet \n");
+
                 classArray = libraryClassSet.toArray(new Class[libraryClassSet.size()]);
                 files = generateAndCompile(classArray, name, count == 0, count == libraryMap.size() - 1);
                 count++;
