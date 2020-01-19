@@ -320,6 +320,7 @@ public class Generator {
             out.println();
 
         } else {
+            /*
             out.println("extern JavaVM* JavaCPP_vm;");
             out.println("extern bool JavaCPP_haveAllocObject;");
             out.println("extern bool JavaCPP_haveNonvirtual;");
@@ -347,11 +348,12 @@ public class Generator {
             out.println("extern jmethodID JavaCPP_stringMID;");
             out.println("extern jmethodID JavaCPP_getBytesMID;");
             out.println("extern jmethodID JavaCPP_toStringMID;");
+            */
 
-            out.println("extern inline void JavaCPP_log(const char* fmt, ...);");
+            out.println("extern void JavaCPP_log(const char* fmt, ...);");
             out.println("    extern pthread_key_t JavaCPP_current_env;");
-            out.println("    extern JavaCPP_noinline void JavaCPP_detach_env(void *data);");
-            out.println("    extern JavaCPP_noinline void JavaCPP_create_pthread_key(void);");
+            out.println("    extern void JavaCPP_detach_env(void *data);");
+            out.println("    extern void JavaCPP_create_pthread_key(void);");
         }
 
 
@@ -664,9 +666,9 @@ public class Generator {
             out.println("}");
             out.println();
         }else {
-            out.println("extern JavaCPP_noinline jclass JavaCPP_getClass(JNIEnv* env, int i);");
-            out.println("extern inline void* JavaCPP_addressof(const char* name);");
-            out.println("extern inline JavaVM* JavaCPP_getJavaVM();");
+            out.println("extern jclass JavaCPP_getClass(JNIEnv* env, int i);");
+            out.println("extern void* JavaCPP_addressof(const char* name);");
+            out.println("extern JavaVM* JavaCPP_getJavaVM();");
         }
     }
 
@@ -781,23 +783,23 @@ public class Generator {
             out.println("}");
             out.println();
         }else {
-            out.println("extern JavaCPP_noinline jclass JavaCPP_getClass(JNIEnv* env, int i);");
+            out.println("extern jclass JavaCPP_getClass(JNIEnv* env, int i);");
 
-            out.println("extern JavaCPP_noinline jfieldID JavaCPP_getFieldID(JNIEnv* env, int i, const char* name, const char* sig);");
+            out.println("extern jfieldID JavaCPP_getFieldID(JNIEnv* env, int i, const char* name, const char* sig);");
 
             if (declareEnums) {
 
-                out.println("extern JavaCPP_noinline jfieldID JavaCPP_getFieldID(JNIEnv* env, const char* clsName, const char* name, const char* sig);");
+                out.println("extern jfieldID JavaCPP_getFieldID(JNIEnv* env, const char* clsName, const char* name, const char* sig);");
             }
 
 
-            out.println("extern JavaCPP_noinline jmethodID JavaCPP_getMethodID(JNIEnv* env, int i, const char* name, const char* sig);");
+            out.println("extern jmethodID JavaCPP_getMethodID(JNIEnv* env, int i, const char* name, const char* sig);");
 
-            out.println("extern JavaCPP_noinline jmethodID JavaCPP_getStaticMethodID(JNIEnv* env, int i, const char* name, const char* sig);");
+            out.println("extern jmethodID JavaCPP_getStaticMethodID(JNIEnv* env, int i, const char* name, const char* sig);");
 
-            out.println("extern JavaCPP_noinline jobject JavaCPP_createPointer(JNIEnv* env, int i, jclass cls = NULL);");
+            out.println("extern jobject JavaCPP_createPointer(JNIEnv* env, int i, jclass cls = NULL);");
 
-            out.println("extern JavaCPP_noinline void JavaCPP_initPointer(JNIEnv* env, jobject obj, const void* ptr, jlong size, void* owner, void (*deallocator)(void*));");
+            out.println("extern void JavaCPP_initPointer(JNIEnv* env, jobject obj, const void* ptr, jlong size, void* owner, void (*deallocator)(void*));");
         }
     }
 
@@ -876,12 +878,12 @@ public class Generator {
         } else {
 
             if (handleExceptions || convertStrings) {
-                out.println("extern JavaCPP_noinline jstring JavaCPP_createString(JNIEnv* env, const char* ptr);");
+                out.println("extern jstring JavaCPP_createString(JNIEnv* env, const char* ptr);");
             }
 
             if (convertStrings) {
-                out.println("extern JavaCPP_noinline const char* JavaCPP_getStringBytes(JNIEnv* env, jstring str);");
-                out.println("extern JavaCPP_noinline void JavaCPP_releaseStringBytes(JNIEnv* env, jstring str, const char* ptr);");
+                out.println("extern const char* JavaCPP_getStringBytes(JNIEnv* env, jstring str);");
+                out.println("extern void JavaCPP_releaseStringBytes(JNIEnv* env, jstring str, const char* ptr);");
             }
 
             out.println("class JavaCPP_hidden JavaCPP_exception : public std::exception {");
@@ -1383,88 +1385,96 @@ public class Generator {
             out.println("  static pthread_mutex_t JavaCPP_lock = PTHREAD_MUTEX_INITIALIZER;");
             out.println("#endif");
             out.println();
-            out.println("static JavaCPP_noinline void JavaCPP_detach(bool detach) {");
-            out.println("#if !defined(NO_JNI_DETACH_THREAD) && !defined(__ANDROID__)");
-            out.println("    if (detach && JavaCPP_vm->DetachCurrentThread() != JNI_OK) {");
-            out.println("        JavaCPP_log(\"Could not detach the JavaVM from the current thread.\");");
-            out.println("    }");
-            out.println("#endif");
-            out.println("}");
-            out.println();
+            if(bGenerateCommon) {
+                out.println("static JavaCPP_noinline void JavaCPP_detach(bool detach) {");
+                out.println("#if !defined(NO_JNI_DETACH_THREAD) && !defined(__ANDROID__)");
+                out.println("    if (detach && JavaCPP_vm->DetachCurrentThread() != JNI_OK) {");
+                out.println("        JavaCPP_log(\"Could not detach the JavaVM from the current thread.\");");
+                out.println("    }");
+                out.println("#endif");
+                out.println("}");
+                out.println();
+            }else{
+                out.println("extern void JavaCPP_detach(bool detach);");
+            }
             if (!loadSuffix.isEmpty()) {
                 out.println("extern \"C\" {");
                 out.println("JNIEXPORT jint JNICALL JNI_OnLoad" + loadSuffix + "(JavaVM* vm, void* reserved);");
                 out.println("}");
             }
-            out.println("static JavaCPP_noinline bool JavaCPP_getEnv(JNIEnv** env) {");
-            out.println("    bool attached = false;");
-            out.println("    JavaVM *vm = JavaCPP_vm;");
-            out.println("    if (vm == NULL) {");
-            if (out2 != null) {
-                out.println("#if !defined(__ANDROID__) && !TARGET_OS_IPHONE");
-                out.println("        int size = 1;");
-                out.println("        if (JNI_GetCreatedJavaVMs(&vm, 1, &size) != JNI_OK || size == 0) {");
+            if(bGenerateCommon) {
+                out.println("static JavaCPP_noinline bool JavaCPP_getEnv(JNIEnv** env) {");
+                out.println("    bool attached = false;");
+                out.println("    JavaVM *vm = JavaCPP_vm;");
+                out.println("    if (vm == NULL) {");
+                if (out2 != null) {
+                    out.println("#if !defined(__ANDROID__) && !TARGET_OS_IPHONE");
+                    out.println("        int size = 1;");
+                    out.println("        if (JNI_GetCreatedJavaVMs(&vm, 1, &size) != JNI_OK || size == 0) {");
+                    out.println("#endif");
+                }
+                out.println("            JavaCPP_log(\"Could not get any created JavaVM.\");");
+                out.println("            *env = NULL;");
+                out.println("            return false;");
+                if (out2 != null) {
+                    out.println("#if !defined(__ANDROID__) && !TARGET_OS_IPHONE");
+                    out.println("        }");
+                    out.println("#endif");
+                }
+                out.println("    }");
+                out.println("#ifdef __ANDROID__");
+                out.println("    pthread_mutex_lock(&JavaCPP_lock);");
+                out.println("    pthread_once(&JavaCPP_once, JavaCPP_create_pthread_key);");
+                out.println("    if ((*env = (JNIEnv *)pthread_getspecific(JavaCPP_current_env)) != NULL) {");
+                out.println("        attached = true;");
+                out.println("        goto done;");
+                out.println("    }");
                 out.println("#endif");
-            }
-            out.println("            JavaCPP_log(\"Could not get any created JavaVM.\");");
-            out.println("            *env = NULL;");
-            out.println("            return false;");
-            if (out2 != null) {
-                out.println("#if !defined(__ANDROID__) && !TARGET_OS_IPHONE");
+                out.println("    if (vm->GetEnv((void**)env, " + JNI_VERSION + ") != JNI_OK) {");
+                out.println("        struct {");
+                out.println("            JNIEnv **env;");
+                out.println("            operator JNIEnv**() { return env; } // Android JNI");
+                out.println("            operator void**() { return (void**)env; } // standard JNI");
+                out.println("        } env2 = { env };");
+                out.println("        JavaVMAttachArgs args;");
+                out.println("        args.version = " + JNI_VERSION + ";");
+                out.println("        args.group = NULL;");
+                out.println("        char name[64] = {0};");
+                out.println("#ifdef _WIN32");
+                out.println("        sprintf(name, \"JavaCPP Thread ID %lu\", GetCurrentThreadId());");
+                out.println("#elif defined(__APPLE__)");
+                out.println("        sprintf(name, \"JavaCPP Thread ID %u\", pthread_mach_thread_np(pthread_self()));");
+                out.println("#else");
+                out.println("        sprintf(name, \"JavaCPP Thread ID %lu\", pthread_self());");
+                out.println("#endif");
+                out.println("        args.name = name;");
+                out.println("        if (vm->AttachCurrentThread(env2, &args) != JNI_OK) {");
+                out.println("            JavaCPP_log(\"Could not attach the JavaVM to the current thread.\");");
+                out.println("            *env = NULL;");
+                out.println("            goto done;");
                 out.println("        }");
+                out.println("#ifdef __ANDROID__");
+                out.println("        pthread_setspecific(JavaCPP_current_env, *env);");
                 out.println("#endif");
+                out.println("        attached = true;");
+                out.println("    }");
+                out.println("    if (JavaCPP_vm == NULL) {");
+                out.println("        if (JNI_OnLoad" + loadSuffix + "(vm, NULL) < 0) {");
+                out.println("            JavaCPP_detach(attached);");
+                out.println("            *env = NULL;");
+                out.println("            goto done;");
+                out.println("        }");
+                out.println("    }");
+                out.println("done:");
+                out.println("#ifdef __ANDROID__");
+                out.println("    pthread_mutex_unlock(&JavaCPP_lock);");
+                out.println("#endif");
+                out.println("    return attached;");
+                out.println("}");
+                out.println();
+            }else {
+                out.println("extern bool JavaCPP_getEnv(JNIEnv** env);");
             }
-            out.println("    }");
-            out.println("#ifdef __ANDROID__");
-            out.println("    pthread_mutex_lock(&JavaCPP_lock);");
-            out.println("    pthread_once(&JavaCPP_once, JavaCPP_create_pthread_key);");
-            out.println("    if ((*env = (JNIEnv *)pthread_getspecific(JavaCPP_current_env)) != NULL) {");
-            out.println("        attached = true;");
-            out.println("        goto done;");
-            out.println("    }");
-            out.println("#endif");
-            out.println("    if (vm->GetEnv((void**)env, " + JNI_VERSION + ") != JNI_OK) {");
-            out.println("        struct {");
-            out.println("            JNIEnv **env;");
-            out.println("            operator JNIEnv**() { return env; } // Android JNI");
-            out.println("            operator void**() { return (void**)env; } // standard JNI");
-            out.println("        } env2 = { env };");
-            out.println("        JavaVMAttachArgs args;");
-            out.println("        args.version = " + JNI_VERSION + ";");
-            out.println("        args.group = NULL;");
-            out.println("        char name[64] = {0};");
-            out.println("#ifdef _WIN32");
-            out.println("        sprintf(name, \"JavaCPP Thread ID %lu\", GetCurrentThreadId());");
-            out.println("#elif defined(__APPLE__)");
-            out.println("        sprintf(name, \"JavaCPP Thread ID %u\", pthread_mach_thread_np(pthread_self()));");
-            out.println("#else");
-            out.println("        sprintf(name, \"JavaCPP Thread ID %lu\", pthread_self());");
-            out.println("#endif");
-            out.println("        args.name = name;");
-            out.println("        if (vm->AttachCurrentThread(env2, &args) != JNI_OK) {");
-            out.println("            JavaCPP_log(\"Could not attach the JavaVM to the current thread.\");");
-            out.println("            *env = NULL;");
-            out.println("            goto done;");
-            out.println("        }");
-            out.println("#ifdef __ANDROID__");
-            out.println("        pthread_setspecific(JavaCPP_current_env, *env);");
-            out.println("#endif");
-            out.println("        attached = true;");
-            out.println("    }");
-            out.println("    if (JavaCPP_vm == NULL) {");
-            out.println("        if (JNI_OnLoad" + loadSuffix + "(vm, NULL) < 0) {");
-            out.println("            JavaCPP_detach(attached);");
-            out.println("            *env = NULL;");
-            out.println("            goto done;");
-            out.println("        }");
-            out.println("    }");
-            out.println("done:");
-            out.println("#ifdef __ANDROID__");
-            out.println("    pthread_mutex_unlock(&JavaCPP_lock);");
-            out.println("#endif");
-            out.println("    return attached;");
-            out.println("}");
-            out.println();
         }
 
         for (Class c : functions) {
